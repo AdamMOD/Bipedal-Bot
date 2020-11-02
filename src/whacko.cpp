@@ -22,7 +22,7 @@ Whacko::Whacko()
 	}
 	usleep(1000*100);
 	//Calibrating IMU
-	bool calibrated = true;
+	bool calibrated = false;
 	int cal_count = 0;
 	while(!calibrated)
 	{

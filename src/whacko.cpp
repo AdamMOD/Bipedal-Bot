@@ -1,15 +1,13 @@
 #include <init.h>
 
 
-using namespace std;
-
 Whacko::Whacko()
 {
-	cout << "Whacko being created...\n";
+	std::cout << "Whacko being created...\n";
 
 	if (gpioInitialise() < 0)
 	{
-		cout <<"Initialisation error of the GPIO \n Closing program..."<< endl;
+		std::cout <<"Initialisation error of the GPIO \n Closing program..."<< std::endl;
 		exit(0);
 	}
 
@@ -44,20 +42,19 @@ Whacko::Whacko()
 		}
 	}
 
-	cout << "Whacko has become.\n";
+	std::cout << "Whacko has become.\n";
 }
 
 
-array<float, 9> Whacko::get9dof()
+arma::colvec Whacko::get9dof()
 {
+	// Returns 9dof reading in form eulerxyz, gyroxyz, linear_accelxyz
 	imu::Vector<3> euler = myimu.getVector(Adafruit_BNO055::VECTOR_EULER);
 	imu::Vector<3> gyro = myimu.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
 	imu::Vector<3> linear_accel = myimu.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
 
-	array<float,3> a_euler = {(float)euler.x(), (float)euler.y(), (float)euler.z()};
-	array<float,3> a_gyro = {(float)gyro.x(), (float)gyro.y(), (float)gyro.z()};
-	array<float,3> a_linear_accel = {(float)linear_accel.x(), (float)linear_accel.y(), (float)linear_accel.z()};
-	array<float, 9> ndof_reading = {euler[0], euler[1], euler[2], gyro[0], gyro[1], gyro[2],
-	       linear_accel[0], linear_accel[1], linear_accel[2]};	
+	arma::colvec ndof_reading(9);
+	ndof_reading = {euler.x(), euler.y(), euler.z(), gyro.x(), gyro.y(), gyro.z(),
+	       linear_accel.x(), linear_accel.y(), linear_accel.z()};	
 	return ndof_reading;
 }

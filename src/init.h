@@ -1,6 +1,7 @@
 #ifndef INIT_DONE
 #define INIT_DONE
 
+#include <mlpack/core.hpp>
 #include <array>
 #include <pigpio.h>
 #include <iostream>
@@ -9,7 +10,7 @@
 #include "Adafruit_ADS1015.h"
 
 
-using namespace std;
+using namespace mlpack;
 
 
 class Whacko
@@ -17,7 +18,7 @@ class Whacko
 	public:
 		Whacko();
 		
-		array<float, 9> get9dof();
+		arma::colvec get9dof();
 	
 	private:
 		Adafruit_BNO055 myimu;

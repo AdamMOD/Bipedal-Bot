@@ -1,5 +1,7 @@
 #include <init.h>
-
+#include "RPi_Sensor.h"
+#include "RPi_BNO055.h"
+#include <utility/imumaths.h>
 
 Whacko::Whacko()
 {

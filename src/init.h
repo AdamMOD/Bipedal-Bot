@@ -1,7 +1,8 @@
 #ifndef INIT_DONE
 #define INIT_DONE
 
-#include <mlpack/core.hpp>
+#include <armadillo>
+//#include <mlpack/core.hpp>
 #include <array>
 #include <pigpio.h>
 #include <iostream>
@@ -10,7 +11,7 @@
 #include "Adafruit_ADS1015.h"
 
 
-using namespace mlpack;
+//using namespace mlpack;
 
 
 class Whacko

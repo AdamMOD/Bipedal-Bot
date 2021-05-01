@@ -58,13 +58,29 @@ Whacko::Whacko()
 	myads.begin();
 	//
 	
-	// Initialize the servo pinouts
-	gpioSetMode(LEFT_LEG_PIN, PI_OUTPUT);
-	gpioSetMode(RIGHT_LEG_PIN, PI_OUTPUT);
+	// Initialize the servo board
+	pcaboard.init(1, 0x40);
+	std::cout << "Initializing pcaboard.\n";
+	usleep(1000 * 100);
+	pcaboard.setPWMFreq(PWMFREQ);
+	std::cout << "Setting pwmfreq to " << PWMFREQ << ". \n";
+	usleep(1000 * 100);
 	
 	std::cout << "Whacko has become.\n";
 }
 
+int Whacko::shutdown()
+{
+	std::cout << "Shutting down..." << std::endl;
+	for (int i = 0; i < 16; i++)
+	{
+		pcaboard.setPWM(i, 0, 0);
+		usleep(1000 * 10);
+	}
+	pcaboard.reset();
+	usleep(1000 * 10);
+	return 0;
+}
 
 Eigen::VectorXd Whacko::get9dof()
 {
@@ -81,56 +97,60 @@ Eigen::VectorXd Whacko::get9dof()
 	ndof_reading << euler.x(), euler.y(), euler.z(), gyro.x(), gyro.y(), gyro.z(),
 					linear_accel.x(), linear_accel.y(), linear_accel.z();
 	//std::cout << ndof_reading << "\n";
+	/*
 	if (ndof_reading.maxCoeff() > 1000 || ndof_reading.minCoeff() < -1000)
 	{
 		return Eigen::VectorXd::Zero(9);
 	}
+	*/
 	return ndof_reading;
 }
 
-int Whacko::move_servo(float degrees, int pin)
+int Whacko::move_servo(float degrees, int channel)
 {
 	if (degrees > 180 || degrees < 0)
 	{
 		std::cout << "Command out of range!" << std::endl;
 		return 1;
 	}
-	int count = (int) 500 + 2000. / 180. * degrees;
-	gpioServo(pin, count);
+	
+	int width = (int) SERVO_MIN_PULSE_WIDTH + (float) ( SERVO_MAX_PULSE_WIDTH - SERVO_MIN_PULSE_WIDTH) / 180. * degrees;
+	int analog_val = int(float(width) /  1000000 * PWMFREQ * 4096);
+	pcaboard.setPWM(channel, 0, analog_val);
 	return 0;
 }
 
+/*
 Eigen::VectorXd Whacko::getservopos()
 {
-	uint16_t adc_right_leg;
-	uint16_t adc_left_leg;
+	uint16_t adc_left_knee;
 	
-	adc_right_leg = myads.readADC_SingleEnded(0);
-	adc_left_leg  = myads.readADC_SingleEnded(1);
-	if (adc_right_leg > SERVO_MAX_READING + 10000)
+	adc_left_knee  = myads.readADC_SingleEnded(LEFT_KNEE_ADS_CHANNEL);
+
+	if (adc_left_knee >  SERVO_MAX_READING + 10000)
 	{
-		adc_right_leg = SERVO_MIN_READING;
+		adc_left_knee = SERVO_MIN_READING;
 	}
-	if (adc_left_leg >  SERVO_MAX_READING + 10000)
-	{
-		adc_left_leg = SERVO_MIN_READING;
-	}
-	double adc_right_leg_deg = (double)(adc_right_leg - SERVO_MIN_READING) / (double) (SERVO_MAX_READING - SERVO_MIN_READING) * 180.;
-	double adc_left_leg_deg = (double)(adc_left_leg - SERVO_MIN_READING) / (double) (SERVO_MAX_READING - SERVO_MIN_READING) * 180.;
-	Eigen::VectorXd reading(2);
-	reading << adc_left_leg_deg, adc_right_leg_deg;
+	double adc_left_leg_deg = (double)(adc_left_knee - SERVO_MIN_READING) / (double)(SERVO_MAX_READING - SERVO_MIN_READING) * 180.;
+	Eigen::VectorXd reading(1);
+	reading << adc_left_knee;
 	return reading;
 }
-
+*/
 
 Eigen::VectorXd Whacko::getservopos_no_deg()
 {
-	uint16_t adc_right_leg;
-	uint16_t adc_left_leg;
+	uint16_t adc_right_hip;
+	uint16_t adc_left_hip;
+	uint16_t adc_right_knee;
+	uint16_t adc_left_knee;
 	
-	adc_right_leg = myads.readADC_SingleEnded(0);
-	adc_left_leg  = myads.readADC_SingleEnded(1);
-	Eigen::VectorXd reading(2);
-	reading << (double) adc_left_leg, (double) adc_right_leg;
+	adc_right_hip  = myads.readADC_SingleEnded(RIGHT_HIP_ADS_CHANNEL);
+	adc_left_hip  = myads.readADC_SingleEnded(LEFT_HIP_ADS_CHANNEL);
+	adc_right_knee  = myads.readADC_SingleEnded(RIGHT_KNEE_ADS_CHANNEL);
+	adc_left_knee  = myads.readADC_SingleEnded(LEFT_KNEE_ADS_CHANNEL);
+	
+	Eigen::VectorXd reading(4);
+	reading << (double) adc_right_hip, (double) adc_left_hip, (double) adc_right_knee, (double) adc_left_knee;
 	return reading;
 }

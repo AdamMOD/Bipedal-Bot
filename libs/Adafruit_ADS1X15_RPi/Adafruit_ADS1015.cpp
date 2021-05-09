@@ -192,11 +192,14 @@ uint16_t Adafruit_ADS1015::readADC_SingleEnded(uint8_t channel) {
                     ADS1015_REG_CONFIG_CLAT_NONLAT  | // Non-latching (default val)
                     ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
                     ADS1015_REG_CONFIG_CMODE_TRAD   | // Traditional comparator (default val)
-                    ADS1015_REG_CONFIG_DR_3300SPS   | // Nope switching it to ads1115's max rate. 1600 samples per second (default)
+                    ADS1015_REG_CONFIG_DR_1600SPS   | // Nope switching it to ads1115's max rate. 1600 samples per second (default)
                     ADS1015_REG_CONFIG_MODE_SINGLE;   // Single-shot mode (default)
 
   // Set PGA/voltage range
   config |= m_gain;
+	
+  //Set sample speed.
+  
 
   // Set single-ended input channel
   switch (channel)
@@ -222,7 +225,8 @@ uint16_t Adafruit_ADS1015::readADC_SingleEnded(uint8_t channel) {
   writeRegister(m_i2cFd, m_i2cAddress, ADS1015_REG_POINTER_CONFIG, config);
 
   // Wait for the conversion to complete
-  usleep(1000*m_conversionDelay);
+  while(!conversionComplete());
+  //usleep(1000*m_conversionDelay);
 
   // Read the conversion results
   // Shift 12-bit results right 4 bits for the ADS1015
@@ -395,7 +399,7 @@ void Adafruit_ADS1015::updateWiringPiSetup()
 int16_t Adafruit_ADS1015::getLastConversionResults()
 {
   // Wait for the conversion to complete
-  usleep(1000*m_conversionDelay);
+  //usleep(1000*m_conversionDelay);
 
   // Read the conversion results
   uint16_t res = readRegister(m_i2cFd, m_i2cAddress, ADS1015_REG_POINTER_CONVERT) >> m_bitShift;
@@ -416,3 +420,6 @@ int16_t Adafruit_ADS1015::getLastConversionResults()
   }
 }
 
+bool Adafruit_ADS1015::conversionComplete() {
+	return (readRegister(m_i2cFd, m_i2cAddress, ADS1015_REG_POINTER_CONFIG) & 0x8000) != 0;
+}

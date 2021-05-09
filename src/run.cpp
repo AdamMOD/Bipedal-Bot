@@ -30,25 +30,19 @@ int main(int argc, char* argv[])
 	std::cout << "Press enter to continue..." << "\n";
 	std::cin.get();
 	
-	mywhacko.move_servo(zero_state(1), LEFT_HIP_PCA_CHANNEL);
-	mywhacko.move_servo(zero_state(0), RIGHT_HIP_PCA_CHANNEL);
-	mywhacko.move_servo(zero_state(3), LEFT_KNEE_PCA_CHANNEL);
-	mywhacko.move_servo(zero_state(2), RIGHT_KNEE_PCA_CHANNEL);
+	mywhacko.zero_servos();
 	usleep(1000 * 1000);
 	
 	// balance(mywhacko);
 	
 	//self_balance_setup(mywhacko);
-	test_servo_data(mywhacko);
+	//test_servo_data(mywhacko);
+	
+	//usleep(1000 * 1000);
+	self_balance_loop(mywhacko);
 	
 	usleep(1000 * 1000);
-	//self_balance_loop(mywhacko);
-	
-	usleep(1000 * 1000);
-	mywhacko.move_servo(zero_state(1), LEFT_HIP_PCA_CHANNEL);
-	mywhacko.move_servo(zero_state(0), RIGHT_HIP_PCA_CHANNEL);
-	mywhacko.move_servo(zero_state(3), LEFT_KNEE_PCA_CHANNEL);
-	mywhacko.move_servo(zero_state(2), RIGHT_KNEE_PCA_CHANNEL);
+	mywhacko.zero_servos();
 	mywhacko.shutdown();
 	
 	return 0;
@@ -87,24 +81,26 @@ void test_servo_data(Whacko mywhacko)
 	Eigen::VectorXd zero_state(6);
 	
 	zero_state = get_initial_state() * 1;
-	mywhacko.move_servo(zero_state(0), RIGHT_HIP_PCA_CHANNEL);
-	mywhacko.move_servo(zero_state(1), LEFT_HIP_PCA_CHANNEL);
+	
+	mywhacko.zero_servos();
+	
 	usleep(1000 * 1500);
 	time_zero = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	std::cout << "T = 0" << "\n";
-	while (now - time_zero < 10000)
+	while (now - time_zero < 5000)
 	{
 		now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 		//cmd = 0.0;
 		//square
-		//cmd = zero_state(3) + 20. * (2 * (int ) (std::sin((float)(now - time_zero) / 1000. * 5.) > 0) - 1);
+		//cmd = 40. * (2 * (int ) (std::sin((float)(now - time_zero) / 1000. * 2.) > 0) - 1);
 		//sin
-		cmd = 30. * std::sin((float)(now - time_zero) / 1000. * 5);
-		mywhacko.move_servo(zero_state(0) + cmd, RIGHT_HIP_PCA_CHANNEL);
-		mywhacko.move_servo(zero_state(1) + cmd, LEFT_HIP_PCA_CHANNEL);
-		leg_location = mywhacko.getservopos_no_deg() * 1;
+		cmd = 20 +  10. * std::sin((float)(now - time_zero) / 1000. * 2);
+		mywhacko.move_servo(cmd, RIGHT_HIP_PCA_CHANNEL);
+		//mywhacko.move_servo(cmd, LEFT_HIP_PCA_CHANNEL);
+		leg_location = mywhacko.getservopos() * 1;
 		myFile << now - time_zero  << "," << leg_location(0) << "," << leg_location(1) << "," << cmd << "\n";
+		//std::cout << now - time_zero << "\n";
 		//myFile << now - time_zero  << "," << cmd << "\n";
 		//usleep(1000 * 10);
 	}
@@ -126,28 +122,29 @@ void self_balance_loop(Whacko mywhacko)
 	int count;
 	
 	std::ofstream myFile("/home/pi/run.csv");
-	myFile << "Time,Command_0,Command 1,Pitch,Pitch_Rate,Left_Hip,Right_Hip\n";
+	myFile << "Time,Command_0,Command 1,Pitch,Pitch_Rate,Right_Hip,Left_Hip\n";
 	
 	imu_reading = mywhacko.get9dof() * 1;
 	state <<  imu_reading(1), imu_reading(4);
+	
 	time_zero = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	
-	while (imu_reading(0) < 80 && imu_reading(0) > -80)
+	while (now-time_zero < 20000)
 	{
 		count++;
 		imu_reading = mywhacko.get9dof() * 1;
-		if (std::abs((state(0) - imu_reading(1))) <= 3 && std::abs((state(1) - imu_reading(4))) <= 1)
+		if (std::abs((state(0) - imu_reading(1))) <= 5 && std::abs((state(1) - imu_reading(4))) <= 5)
 		{
 			state <<  imu_reading(1), imu_reading(4);
 		}
-		command = P_theta_balance(state) * 1;
+		command = P_theta_and_leg_balance(state, leg_location) * 1;
+
 		mywhacko.move_servo(command(0), LEFT_HIP_PCA_CHANNEL);
-		// usleep(1000 * 2);
 		mywhacko.move_servo(command(1), RIGHT_HIP_PCA_CHANNEL);
-		leg_location = mywhacko.getservopos_no_deg() * 1;
+		leg_location = mywhacko.getservopos() * 1;
 		now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-		myFile << now - time_zero << "," << command(0) << "," << command(1) << "," << state(0) << "," << state(1) << "," << leg_location(1) << "," << leg_location(0) << "\n";
+		myFile << now - time_zero << "," << command(0) << "," << command(1) << "," << state(0) << "," << state(1) << "," << leg_location(0) << "," << leg_location(1) << "\n";
 		
 		if (count % 50 == 0)
 		{

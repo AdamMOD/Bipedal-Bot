@@ -90,6 +90,8 @@
     #define ADS1015_REG_CONFIG_DR_2400SPS   (0x00A0)  // 2400 samples per second
     #define ADS1015_REG_CONFIG_DR_3300SPS   (0x00C0)  // 3300 samples per second
 
+    #define ADS1115_REG_CONFIG_DR_860SPS (0x00E0)
+
     #define ADS1015_REG_CONFIG_CMODE_MASK   (0x0010)
     #define ADS1015_REG_CONFIG_CMODE_TRAD   (0x0000)  // Traditional comparator with hysteresis (default)
     #define ADS1015_REG_CONFIG_CMODE_WINDOW (0x0010)  // Window comparator
@@ -141,6 +143,8 @@ protected:
   void      setI2cAddress(uint8_t i2cAddress);
   void      setGain(adsGain_t gain);
   adsGain_t getGain(void);
+	
+  bool conversionComplete();
 
  private:
 };

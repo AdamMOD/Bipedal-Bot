@@ -72,11 +72,7 @@ Whacko::Whacko()
 int Whacko::shutdown()
 {
 	std::cout << "Shutting down..." << std::endl;
-	for (int i = 0; i < 16; i++)
-	{
-		pcaboard.setPWM(i, 0, 0);
-		usleep(1000 * 10);
-	}
+	zero_servos();
 	pcaboard.reset();
 	usleep(1000 * 10);
 	return 0;
@@ -108,35 +104,55 @@ Eigen::VectorXd Whacko::get9dof()
 
 int Whacko::move_servo(float degrees, int channel)
 {
-	if (degrees > 180 || degrees < 0)
+	if (degrees > MAX_SERVO_ANGLE / 2 || degrees < -MAX_SERVO_ANGLE / 2)
 	{
 		std::cout << "Command out of range!" << std::endl;
 		return 1;
 	}
+	degrees = SERVO_ZERO[channel] + degrees * SERVO_FLIP[channel];
 	
-	int width = (int) SERVO_MIN_PULSE_WIDTH + (float) ( SERVO_MAX_PULSE_WIDTH - SERVO_MIN_PULSE_WIDTH) / 180. * degrees;
+	int width = (int) SERVO_MIN_PULSE_WIDTH + (float)(SERVO_MAX_PULSE_WIDTH - SERVO_MIN_PULSE_WIDTH) / MAX_SERVO_ANGLE * degrees;
 	int analog_val = int(float(width) /  1000000 * PWMFREQ * 4096);
 	pcaboard.setPWM(channel, 0, analog_val);
 	return 0;
 }
 
-/*
+int Whacko::zero_servos()
+{
+	move_servo(0, LEFT_HIP_PCA_CHANNEL);
+	move_servo(0, RIGHT_HIP_PCA_CHANNEL);
+	move_servo(0, LEFT_KNEE_PCA_CHANNEL);
+	move_servo(0, RIGHT_KNEE_PCA_CHANNEL);
+	return 0;
+}
+
+
 Eigen::VectorXd Whacko::getservopos()
 {
+	uint16_t adc_right_hip;
+	uint16_t adc_left_hip;
+	uint16_t adc_right_knee;
 	uint16_t adc_left_knee;
 	
-	adc_left_knee  = myads.readADC_SingleEnded(LEFT_KNEE_ADS_CHANNEL);
-
-	if (adc_left_knee >  SERVO_MAX_READING + 10000)
-	{
-		adc_left_knee = SERVO_MIN_READING;
-	}
-	double adc_left_leg_deg = (double)(adc_left_knee - SERVO_MIN_READING) / (double)(SERVO_MAX_READING - SERVO_MIN_READING) * 180.;
-	Eigen::VectorXd reading(1);
-	reading << adc_left_knee;
+	float adc_right_hipf;
+	float adc_left_hipf;
+	float adc_right_kneef;
+	float adc_left_kneef;
+	
+	adc_right_hip  = myads.readADC_SingleEnded(RIGHT_HIP_ADS_CHANNEL);
+	adc_left_hip  = myads.readADC_SingleEnded(LEFT_HIP_ADS_CHANNEL);
+	//adc_right_knee  = myads.readADC_SingleEnded(RIGHT_KNEE_ADS_CHANNEL);
+	//adc_left_knee  = myads.readADC_SingleEnded(LEFT_KNEE_ADS_CHANNEL);
+	adc_right_kneef = 0;
+	adc_left_kneef = 0;
+	adc_right_hipf = map(adc_right_hip, 17200, 10256, 40, -40);
+	adc_left_hipf = map(adc_left_hip, 10944, 17952, 40, -40);
+	
+	Eigen::VectorXd reading(4);
+	reading << adc_right_hipf, adc_left_hipf, adc_right_kneef, adc_left_kneef;
 	return reading;
 }
-*/
+
 
 Eigen::VectorXd Whacko::getservopos_no_deg()
 {
